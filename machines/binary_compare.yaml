@@ -1,0 +1,30 @@
+name: "Binary Compare"
+states: [q_start, q_find_hash_0, q_match_0, q_find_hash_1, q_match_1, q_back, q_reject, q_accept]
+input_alphabet: ["0", "1", "#"]
+tape_alphabet: ["0", "1", "#", "B", "X", "Y"]
+start_state: q_start
+accept_states: [q_accept]
+blank: "B"
+transitions:
+  - {state: q_start, read: "Y", write: "Y", move: R, next: q_start}
+  - {state: q_start, read: "0", write: "Y", move: R, next: q_find_hash_0}
+  - {state: q_start, read: "1", write: "Y", move: R, next: q_find_hash_1}
+  - {state: q_start, read: "#", write: "#", move: R, next: q_reject} 
+  - {state: q_find_hash_0, read: "0", write: "0", move: R, next: q_find_hash_0}
+  - {state: q_find_hash_0, read: "1", write: "1", move: R, next: q_find_hash_0}
+  - {state: q_find_hash_0, read: "#", write: "#", move: R, next: q_match_0}
+  - {state: q_match_0, read: "X", write: "X", move: R, next: q_match_0}
+  - {state: q_match_0, read: "0", write: "X", move: L, next: q_back}
+  - {state: q_match_0, read: "1", write: "X", move: L, next: q_reject} 
+  - {state: q_find_hash_1, read: "0", write: "0", move: R, next: q_find_hash_1}
+  - {state: q_find_hash_1, read: "1", write: "1", move: R, next: q_find_hash_1}
+  - {state: q_find_hash_1, read: "#", write: "#", move: R, next: q_match_1}
+  - {state: q_match_1, read: "X", write: "X", move: R, next: q_match_1}
+  - {state: q_match_1, read: "1", write: "X", move: L, next: q_back}
+  - {state: q_match_1, read: "0", write: "X", move: L, next: q_accept} 
+  - {state: q_back, read: "0", write: "0", move: L, next: q_back}
+  - {state: q_back, read: "1", write: "1", move: L, next: q_back}
+  - {state: q_back, read: "X", write: "X", move: L, next: q_back}
+  - {state: q_back, read: "#", write: "#", move: L, next: q_back}
+  - {state: q_back, read: "Y", write: "Y", move: R, next: q_start}
+  

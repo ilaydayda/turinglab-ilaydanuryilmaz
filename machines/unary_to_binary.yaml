@@ -1,0 +1,75 @@
+name: "unary_to_binary"
+description: >
+  Tekli (unary) sayıyı ikili (binary) gösterime çevirir.
+  Girdi: 1^n, Çıktı: n'in binary karşılığı (MSB solda).
+  Örnek: 111 -> 11, 1111 -> 100
+
+states: [q_s, q_f1, q_ts, q_te, q_i, q_c,
+         q_shr_start, q_shr, q_shr_back,
+         q_b, q_b2, q_gl, q_cl, q_sk, q_rw, q_accept]
+
+input_alphabet: ["1"]
+tape_alphabet: ["1", "0", "B", "X", "#"]
+blank: "B"
+start_state: q_s
+accept_states: [q_accept]
+
+transitions:
+  - {state: q_s,  read: "1", next: q_s,  write: "1", move: R}
+  - {state: q_s,  read: "B", next: q_f1, write: "#", move: L}
+
+  - {state: q_f1, read: "1", next: q_ts,  write: "X", move: R}
+  - {state: q_f1, read: "X", next: q_f1,  write: "X", move: R}
+  - {state: q_f1, read: "#", next: q_gl,  write: "#", move: L}
+  - {state: q_f1, read: "B", next: q_cl,  write: "B", move: R}
+
+  - {state: q_ts, read: "1", next: q_ts,  write: "1", move: R}
+  - {state: q_ts, read: "X", next: q_ts,  write: "X", move: R}
+  - {state: q_ts, read: "#", next: q_te,  write: "#", move: R}
+
+  - {state: q_te, read: "0", next: q_te,  write: "0", move: R}
+  - {state: q_te, read: "1", next: q_te,  write: "1", move: R}
+  - {state: q_te, read: "B", next: q_i,   write: "B", move: L}
+
+  - {state: q_i, read: "0", next: q_b,         write: "1", move: L}
+  - {state: q_i, read: "1", next: q_c,          write: "0", move: L}
+  - {state: q_i, read: "#", next: q_shr_start,  write: "#", move: R}
+
+  - {state: q_c, read: "0", next: q_b,          write: "1", move: L}
+  - {state: q_c, read: "1", next: q_c,           write: "0", move: L}
+  - {state: q_c, read: "#", next: q_shr_start,   write: "#", move: R}
+
+  - {state: q_shr_start, read: "B", next: q_b,   write: "1", move: L}
+  - {state: q_shr_start, read: "0", next: q_shr,  write: "1", move: R}
+  - {state: q_shr_start, read: "1", next: q_shr,  write: "1", move: R}
+
+  - {state: q_shr, read: "0", next: q_shr,       write: "0", move: R}
+  - {state: q_shr, read: "B", next: q_shr_back,  write: "0", move: L}
+
+  - {state: q_shr_back, read: "0", next: q_shr_back, write: "0", move: L}
+  - {state: q_shr_back, read: "1", next: q_shr_back, write: "1", move: L}
+  - {state: q_shr_back, read: "#", next: q_b2,       write: "#", move: L}
+
+  - {state: q_b, read: "0", next: q_b,   write: "0", move: L}
+  - {state: q_b, read: "1", next: q_b,   write: "1", move: L}
+  - {state: q_b, read: "#", next: q_b2,  write: "#", move: L}
+
+  - {state: q_b2, read: "X", next: q_b2,  write: "X", move: L}
+  - {state: q_b2, read: "1", next: q_b2,  write: "1", move: L}
+  - {state: q_b2, read: "B", next: q_f1,  write: "B", move: R}
+
+  - {state: q_gl, read: "X", next: q_gl,  write: "X", move: L}
+  - {state: q_gl, read: "1", next: q_gl,  write: "1", move: L}
+  - {state: q_gl, read: "B", next: q_cl,  write: "B", move: R}
+
+  - {state: q_cl, read: "X", next: q_cl,  write: "B", move: R}
+  - {state: q_cl, read: "1", next: q_cl,  write: "B", move: R}
+  - {state: q_cl, read: "#", next: q_sk,  write: "B", move: R}
+
+  - {state: q_sk, read: "0", next: q_sk,  write: "0", move: R}
+  - {state: q_sk, read: "1", next: q_sk,  write: "1", move: R}
+  - {state: q_sk, read: "B", next: q_rw,  write: "B", move: L}
+
+  - {state: q_rw, read: "0", next: q_rw,     write: "0", move: L}
+  - {state: q_rw, read: "1", next: q_rw,     write: "1", move: L}
+  - {state: q_rw, read: "B", next: q_accept, write: "B", move: R}

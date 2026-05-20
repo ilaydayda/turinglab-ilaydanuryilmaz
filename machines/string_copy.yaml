@@ -1,0 +1,33 @@
+name: "String Copy"
+states: [q_init, q_back_to_start, q_copy, q_copy_a, q_copy_b, q_back_copy, q_restore, q_accept]
+input_alphabet: ["a", "b"]
+tape_alphabet: ["a", "b", "B", "#", "A", "Y"]
+start_state: q_init
+accept_states: [q_accept]
+blank: "B"
+transitions:
+  - {state: q_init, read: "a", write: "a", move: R, next: q_init}
+  - {state: q_init, read: "b", write: "b", move: R, next: q_init}
+  - {state: q_init, read: "B", write: "#", move: L, next: q_back_to_start}
+  - {state: q_back_to_start, read: "a", write: "a", move: L, next: q_back_to_start}
+  - {state: q_back_to_start, read: "b", write: "b", move: L, next: q_back_to_start}
+  - {state: q_back_to_start, read: "B", write: "B", move: R, next: q_copy}
+  - {state: q_copy, read: "a", write: "A", move: R, next: q_copy_a}
+  - {state: q_copy, read: "b", write: "Y", move: R, next: q_copy_b}
+  - {state: q_copy, read: "#", write: "#", move: L, next: q_restore}
+  - {state: q_copy_a, read: "a", write: "a", move: R, next: q_copy_a}
+  - {state: q_copy_a, read: "b", write: "b", move: R, next: q_copy_a}
+  - {state: q_copy_a, read: "#", write: "#", move: R, next: q_copy_a}
+  - {state: q_copy_a, read: "B", write: "a", move: L, next: q_back_copy}
+  - {state: q_copy_b, read: "a", write: "a", move: R, next: q_copy_b}
+  - {state: q_copy_b, read: "b", write: "b", move: R, next: q_copy_b}
+  - {state: q_copy_b, read: "#", write: "#", move: R, next: q_copy_b}
+  - {state: q_copy_b, read: "B", write: "b", move: L, next: q_back_copy}
+  - {state: q_back_copy, read: "a", write: "a", move: L, next: q_back_copy}
+  - {state: q_back_copy, read: "b", write: "b", move: L, next: q_back_copy}
+  - {state: q_back_copy, read: "#", write: "#", move: L, next: q_back_copy}
+  - {state: q_back_copy, read: "A", write: "A", move: R, next: q_copy}
+  - {state: q_back_copy, read: "Y", write: "Y", move: R, next: q_copy}
+  - {state: q_restore, read: "A", write: "a", move: L, next: q_restore}
+  - {state: q_restore, read: "Y", write: "b", move: L, next: q_restore}
+  - {state: q_restore, read: "B", write: "B", move: R, next: q_accept}
