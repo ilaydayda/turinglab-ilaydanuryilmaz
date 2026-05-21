@@ -1,0 +1,26 @@
+name: "Bit Flipper"
+states: [q_start, q_accept, q_reject]
+input_alphabet: ["0", "1"]
+tape_alphabet: ["0", "1", "B"]
+start_state: q_start
+accept_states: [q_accept]
+blank: "B"
+
+transitions:
+  - state: q_start
+    read: "0"
+    write: "1"
+    move: R
+    next: q_start
+    
+  - state: q_start
+    read: "1"
+    write: "0"
+    move: R
+    next: q_start
+    
+  - state: q_start
+    read: "B"
+    write: "B"
+    move: L
+    next: q_accept
