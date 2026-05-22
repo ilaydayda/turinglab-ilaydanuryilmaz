@@ -1,0 +1,228 @@
+name: "binary_addition_mt"
+description: >
+  3-şeritli ikili toplama makinesi.
+  Şerit 1: birinci sayı (örn. 1011)
+  Şerit 2: ikinci sayı  (örn. 0101)
+  Şerit 3: sonuç (başta boş, işlem bitince toplamı içerir)
+
+  Strateji: Her iki şeridin en sağına git, sağdan sola ilerleyerek
+  bit bit topla; elde (carry) bitini durum adıyla taşı.
+  Tek-şeritli TM'e kıyasla ileri-geri tarama gerekmez — her şerit
+  bağımsız hareket eder.
+
+num_tapes: 3
+states:
+  - q_right        # iki sayının sonuna git
+  - q_add_c0       # carry=0 iken sağdan sola topla
+  - q_add_c1       # carry=1 iken sağdan sola topla
+  - q_rewind       # sonucu başa sar
+  - q_accept
+
+input_alphabet: ["0", "1"]
+tape_alphabet:  ["0", "1", "B"]
+blank: "B"
+start_state: q_right
+accept_states: [q_accept]
+
+transitions:
+  # ── Aşama 1: Her iki şeridin sonuna git ────────────────────────────
+  # Şerit 1 veya 2'de bit kaldığı sürece sağa git; şerit 3 dokunulmaz
+  - state: q_right
+    read:  ["0", "0", "B"]
+    write: ["0", "0", "B"]
+    move:  ["R", "R", "S"]
+    next:  q_right
+
+  - state: q_right
+    read:  ["0", "1", "B"]
+    write: ["0", "1", "B"]
+    move:  ["R", "R", "S"]
+    next:  q_right
+
+  - state: q_right
+    read:  ["1", "0", "B"]
+    write: ["1", "0", "B"]
+    move:  ["R", "R", "S"]
+    next:  q_right
+
+  - state: q_right
+    read:  ["1", "1", "B"]
+    write: ["1", "1", "B"]
+    move:  ["R", "R", "S"]
+    next:  q_right
+
+  # Şerit 1 bitti (B), şerit 2 devam ediyor
+  - state: q_right
+    read:  ["B", "0", "B"]
+    write: ["B", "0", "B"]
+    move:  ["S", "R", "S"]
+    next:  q_right
+
+  - state: q_right
+    read:  ["B", "1", "B"]
+    write: ["B", "1", "B"]
+    move:  ["S", "R", "S"]
+    next:  q_right
+
+  # Şerit 2 bitti (B), şerit 1 devam ediyor
+  - state: q_right
+    read:  ["0", "B", "B"]
+    write: ["0", "B", "B"]
+    move:  ["R", "S", "S"]
+    next:  q_right
+
+  - state: q_right
+    read:  ["1", "B", "B"]
+    write: ["1", "B", "B"]
+    move:  ["R", "S", "S"]
+    next:  q_right
+
+  # Her iki şerit de bitti → sola dön, carry=0 ile toplamaya başla
+  - state: q_right
+    read:  ["B", "B", "B"]
+    write: ["B", "B", "B"]
+    move:  ["L", "L", "S"]
+    next:  q_add_c0
+
+  # ── Aşama 2a: carry=0 iken topla (sağdan sola) ────────────────────
+  # 0+0+0 = 0, carry=0
+  - state: q_add_c0
+    read:  ["0", "0", "B"]
+    write: ["0", "0", "0"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c0
+
+  # 0+1+0 = 1, carry=0
+  - state: q_add_c0
+    read:  ["0", "1", "B"]
+    write: ["0", "1", "1"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c0
+
+  # 1+0+0 = 1, carry=0
+  - state: q_add_c0
+    read:  ["1", "0", "B"]
+    write: ["1", "0", "1"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c0
+
+  # 1+1+0 = 0, carry=1
+  - state: q_add_c0
+    read:  ["1", "1", "B"]
+    write: ["1", "1", "0"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c1
+
+  # Şerit 1 tükendi, şerit 2 devam ediyor (carry=0)
+  - state: q_add_c0
+    read:  ["B", "0", "B"]
+    write: ["B", "0", "0"]
+    move:  ["S", "L", "L"]
+    next:  q_add_c0
+
+  - state: q_add_c0
+    read:  ["B", "1", "B"]
+    write: ["B", "1", "1"]
+    move:  ["S", "L", "L"]
+    next:  q_add_c0
+
+  # Şerit 2 tükendi, şerit 1 devam ediyor (carry=0)
+  - state: q_add_c0
+    read:  ["0", "B", "B"]
+    write: ["0", "B", "0"]
+    move:  ["L", "S", "L"]
+    next:  q_add_c0
+
+  - state: q_add_c0
+    read:  ["1", "B", "B"]
+    write: ["1", "B", "1"]
+    move:  ["L", "S", "L"]
+    next:  q_add_c0
+
+  # Her iki şerit tükendi, carry=0 → geri sar
+  - state: q_add_c0
+    read:  ["B", "B", "B"]
+    write: ["B", "B", "B"]
+    move:  ["S", "S", "R"]
+    next:  q_rewind
+
+  # ── Aşama 2b: carry=1 iken topla (sağdan sola) ────────────────────
+  # 0+0+1 = 1, carry=0
+  - state: q_add_c1
+    read:  ["0", "0", "B"]
+    write: ["0", "0", "1"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c0
+
+  # 0+1+1 = 0, carry=1
+  - state: q_add_c1
+    read:  ["0", "1", "B"]
+    write: ["0", "1", "0"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c1
+
+  # 1+0+1 = 0, carry=1
+  - state: q_add_c1
+    read:  ["1", "0", "B"]
+    write: ["1", "0", "0"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c1
+
+  # 1+1+1 = 1, carry=1
+  - state: q_add_c1
+    read:  ["1", "1", "B"]
+    write: ["1", "1", "1"]
+    move:  ["L", "L", "L"]
+    next:  q_add_c1
+
+  # Şerit 1 tükendi, şerit 2 devam ediyor (carry=1)
+  - state: q_add_c1
+    read:  ["B", "0", "B"]
+    write: ["B", "0", "1"]
+    move:  ["S", "L", "L"]
+    next:  q_add_c0
+
+  - state: q_add_c1
+    read:  ["B", "1", "B"]
+    write: ["B", "1", "0"]
+    move:  ["S", "L", "L"]
+    next:  q_add_c1
+
+  # Şerit 2 tükendi, şerit 1 devam ediyor (carry=1)
+  - state: q_add_c1
+    read:  ["0", "B", "B"]
+    write: ["0", "B", "1"]
+    move:  ["L", "S", "L"]
+    next:  q_add_c0
+
+  - state: q_add_c1
+    read:  ["1", "B", "B"]
+    write: ["1", "B", "0"]
+    move:  ["L", "S", "L"]
+    next:  q_add_c1
+
+  # Her iki şerit tükendi, carry=1 kaldı → sonuca 1 ekle, geri sar
+  - state: q_add_c1
+    read:  ["B", "B", "B"]
+    write: ["B", "B", "1"]
+    move:  ["S", "S", "L"]
+    next:  q_rewind
+
+  # ── Aşama 3: Sonuç şeridini başa sar ──────────────────────────────
+  - state: q_rewind
+    read:  ["B", "B", "0"]
+    write: ["B", "B", "0"]
+    move:  ["S", "S", "R"]
+    next:  q_rewind
+
+  - state: q_rewind
+    read:  ["B", "B", "1"]
+    write: ["B", "B", "1"]
+    move:  ["S", "S", "R"]
+    next:  q_rewind
+
+  - state: q_rewind
+    read:  ["B", "B", "B"]
+    write: ["B", "B", "B"]
+    move:  ["S", "S", "L"]
+    next:  q_accept

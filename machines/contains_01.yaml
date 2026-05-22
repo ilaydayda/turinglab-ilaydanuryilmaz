@@ -1,0 +1,49 @@
+name: "contains_01"
+description: >
+  '01' alt-dizgisini içeren binary dizgileri kabul eden NTM.
+  Non-determinizm: q0'dan 0 okuyunca hem yerinde kalıp devam edebilir
+  (deterministik dal), hem de '01'in başını gördük diyerek q1'e dallanabilir.
+  Bu sayede makine tek adımda "deneme" yapar; BFS tüm dalları izler.
+
+states: [q0, q1, q_accept]
+input_alphabet: ["0", "1"]
+tape_alphabet:  ["0", "1", "B"]
+blank: "B"
+start_state: q0
+accept_states: [q_accept]
+
+transitions:
+  # ── q0: Girdiyi tara, '0' görünce dallan ───────────────────────────
+  # Dal 1: '0' gördük ama '01' değil mi diye devam et (deterministik dal)
+  - state: q0
+    read:  "0"
+    write: "0"
+    move:  "R"
+    next:  q0
+
+  # Dal 2: '0' gördük → bu '01'in başı olabilir, q1'e geç (non-deterministik dal)
+  - state: q0
+    read:  "0"
+    write: "0"
+    move:  "R"
+    next:  q1
+
+  # '1' gördük, taramaya devam
+  - state: q0
+    read:  "1"
+    write: "1"
+    move:  "R"
+    next:  q0
+
+  # Şerit bitti, '01' bulunamadı → bu dal reddedilir (geçiş yok → dead end)
+
+  # ── q1: '0' gördük, şimdi '1' bekle ───────────────────────────────
+  - state: q1
+    read:  "1"
+    write: "1"
+    move:  "R"
+    next:  q_accept
+
+  # '1' yerine '0' geldiyse bu dal başarısız → dead end (geçiş yok)
+
+  # ── q_accept: Kabul durumu (geçiş gerekmez) ───────────────────────

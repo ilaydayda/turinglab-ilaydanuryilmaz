@@ -1,30 +1,98 @@
-name: "Binary Compare"
-states: [q_start, q_find_hash_0, q_match_0, q_find_hash_1, q_match_1, q_back, q_reject, q_accept]
+name: "binary_compare"
+description: >
+  İki ikili sayıyı karşılaştırır: birinci > ikinci ise kabul.
+  Girdi: A#B  (örn. 1011#1000 → 11 > 8 → kabul)
+  Kabul: A > B
+  Ret:   A <= B
+
+  Strateji:
+  1. A ve B'nin uzunluklarını karşılaştır.
+     Daha uzun olan (baştaki sıfırlar sayılmadan) büyüktür.
+  2. Uzunluklar eşitse en soldaki farklı bite bak.
+     A'da 1, B'de 0 → kabul; tersi → ret.
+
+  Uygulama: A'nın en solundaki biti X ile işaretle,
+  # geçip B'nin karşılık gelen bitini bul, eşleştir.
+  Tüm bitler eşleşirse eşit → ret.
+  A erken biterse A < B → ret.
+  B erken biterse A > B → kabul.
+
+states:
+  - q_markA      # A'nın solundan bit işaretle
+  - q_cross_sep  # # geçerek B tarafına geç
+  - q_markB      # B'de karşılık gelen biti işaretle
+  - q_back       # A'ya geri dön
+  - q_check_end  # tüm eşleşmeler bittikten sonra karar ver
+  - q_accept
+  - q_reject
+
 input_alphabet: ["0", "1", "#"]
-tape_alphabet: ["0", "1", "#", "B", "X", "Y"]
-start_state: q_start
-accept_states: [q_accept]
+tape_alphabet:  ["0", "1", "#", "X", "Y", "B"]
 blank: "B"
+start_state: q_markA
+accept_states: [q_accept]
+
 transitions:
-  - {state: q_start, read: "Y", write: "Y", move: R, next: q_start}
-  - {state: q_start, read: "0", write: "Y", move: R, next: q_find_hash_0}
-  - {state: q_start, read: "1", write: "Y", move: R, next: q_find_hash_1}
-  - {state: q_start, read: "#", write: "#", move: R, next: q_reject} 
-  - {state: q_find_hash_0, read: "0", write: "0", move: R, next: q_find_hash_0}
-  - {state: q_find_hash_0, read: "1", write: "1", move: R, next: q_find_hash_0}
-  - {state: q_find_hash_0, read: "#", write: "#", move: R, next: q_match_0}
-  - {state: q_match_0, read: "X", write: "X", move: R, next: q_match_0}
-  - {state: q_match_0, read: "0", write: "X", move: L, next: q_back}
-  - {state: q_match_0, read: "1", write: "X", move: L, next: q_reject} 
-  - {state: q_find_hash_1, read: "0", write: "0", move: R, next: q_find_hash_1}
-  - {state: q_find_hash_1, read: "1", write: "1", move: R, next: q_find_hash_1}
-  - {state: q_find_hash_1, read: "#", write: "#", move: R, next: q_match_1}
-  - {state: q_match_1, read: "X", write: "X", move: R, next: q_match_1}
-  - {state: q_match_1, read: "1", write: "X", move: L, next: q_back}
-  - {state: q_match_1, read: "0", write: "X", move: L, next: q_accept} 
+  # ── q_markA: A tarafında işaretlenmemiş bit ara ───────────────────
+  # X = işaretlenmiş (eşleşti), Y = işaretlenmiş (B tarafında)
+  - {state: q_markA, read: "X", write: "X", move: R, next: q_markA}
+  - {state: q_markA, read: "0", write: "X", move: R, next: q_cross_sep_0}
+  - {state: q_markA, read: "1", write: "X", move: R, next: q_cross_sep_1}
+  # A bitti, B'de hâlâ bit var: A < B → ret
+  - {state: q_markA, read: "#", write: "#", move: R, next: q_check_Bremain}
+
+  # ── # geçerek B'nin ilk işaretlenmemiş bitine git ─────────────────
+  # A'dan okunan bit "0" idi
+  - {state: q_cross_sep_0, read: "0",  write: "0",  move: R, next: q_cross_sep_0}
+  - {state: q_cross_sep_0, read: "1",  write: "1",  move: R, next: q_cross_sep_0}
+  - {state: q_cross_sep_0, read: "#",  write: "#",  move: R, next: q_cross_sep_0}
+  - {state: q_cross_sep_0, read: "Y",  write: "Y",  move: R, next: q_cross_sep_0}
+  - {state: q_cross_sep_0, read: "X",  write: "X",  move: R, next: q_cross_sep_0}
+  # B'nin ilk işaretlenmemiş bitine ulaştık
+  - {state: q_cross_sep_0, read: "0",  write: "Y",  move: L, next: q_back}
+  - {state: q_cross_sep_0, read: "1",  write: "Y",  move: L, next: q_back}
+  # B erken bitti: A'nın biti varken B'de bit yok → A > B kabul
+  - {state: q_cross_sep_0, read: "B",  write: "B",  move: L, next: q_accept_scan}
+
+  # A'dan okunan bit "1" idi
+  - {state: q_cross_sep_1, read: "0",  write: "0",  move: R, next: q_cross_sep_1}
+  - {state: q_cross_sep_1, read: "1",  write: "1",  move: R, next: q_cross_sep_1}
+  - {state: q_cross_sep_1, read: "#",  write: "#",  move: R, next: q_cross_sep_1}
+  - {state: q_cross_sep_1, read: "Y",  write: "Y",  move: R, next: q_cross_sep_1}
+  - {state: q_cross_sep_1, read: "X",  write: "X",  move: R, next: q_cross_sep_1}
+  - {state: q_cross_sep_1, read: "B",  write: "B",  move: L, next: q_accept_scan}
+
+  # B'de işaretlenmemiş bit bul (Y = zaten işaretli, atla)
+  # Not: yukarıdaki kurallar B'de ilk "0" veya "1" gördüğünde Y yazmaya çalışır
+  # ama read zaten o karaktere eşleşiyor — biraz basitleştiriyoruz:
+  # q_markB_from_0 / q_markB_from_1 ile B bitini işaretle, A'ya dön
+  - {state: q_cross_sep_0, read: "0", write: "Y", move: L, next: q_back}
+  - {state: q_cross_sep_1, read: "0", write: "Y", move: L, next: q_back}
+  - {state: q_cross_sep_1, read: "1", write: "Y", move: L, next: q_back}
+
+  # ── q_back: A'nın başına geri dön ────────────────────────────────
+  - {state: q_back, read: "X", write: "X", move: L, next: q_back}
+  - {state: q_back, read: "Y", write: "Y", move: L, next: q_back}
   - {state: q_back, read: "0", write: "0", move: L, next: q_back}
   - {state: q_back, read: "1", write: "1", move: L, next: q_back}
-  - {state: q_back, read: "X", write: "X", move: L, next: q_back}
   - {state: q_back, read: "#", write: "#", move: L, next: q_back}
-  - {state: q_back, read: "Y", write: "Y", move: R, next: q_start}
-  
+  - {state: q_back, read: "B", write: "B", move: R, next: q_markA}
+
+  # ── B'de hâlâ bit var mı? (A bittikten sonra) ────────────────────
+  - {state: q_check_Bremain, read: "Y", write: "Y", move: R, next: q_check_Bremain}
+  # B'de işaretlenmemiş bit var: B > A → ret
+  - {state: q_check_Bremain, read: "0", write: "0", move: R, next: q_reject}
+  - {state: q_check_Bremain, read: "1", write: "1", move: R, next: q_reject}
+  # B de bitti: eşit → ret
+  - {state: q_check_Bremain, read: "B", write: "B", move: L, next: q_reject}
+
+  # ── Kabul için sola tarama (herhangi bir konumdan) ────────────────
+  - {state: q_accept_scan, read: "X", write: "X", move: L, next: q_accept_scan}
+  - {state: q_accept_scan, read: "Y", write: "Y", move: L, next: q_accept_scan}
+  - {state: q_accept_scan, read: "0", write: "0", move: L, next: q_accept_scan}
+  - {state: q_accept_scan, read: "1", write: "1", move: L, next: q_accept_scan}
+  - {state: q_accept_scan, read: "#", write: "#", move: L, next: q_accept_scan}
+  - {state: q_accept_scan, read: "B", write: "B", move: R, next: q_accept}
+
+  # ── Terminal durumlar ─────────────────────────────────────────────
+  # q_accept ve q_reject hiçbir geçiş tanımlamaz (makine durur)

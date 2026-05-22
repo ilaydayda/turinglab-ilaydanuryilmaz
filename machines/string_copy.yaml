@@ -1,33 +1,95 @@
-name: "String Copy"
-states: [q_init, q_back_to_start, q_copy, q_copy_a, q_copy_b, q_back_copy, q_restore, q_accept]
+name: "string_copy"
+description: >
+  Verilen dizgiyi kopyalar: girdi → girdi#girdi
+  Örnek: abba → abba#abba
+  Şerit alfabesi: {a, b, B, #, A, C}
+    A = işaretlenmiş 'a'  (orijinal konumda)
+    C = işaretlenmiş 'b'  (orijinal konumda)
+
+  Strateji:
+  1. Soldan sağa tara; 'a' veya 'b' bul.
+  2. Onu büyük harfle (A/C) işaretle — "bu karakteri kopyaladım" işareti.
+  3. Şeridin sonuna (# varsa onun ötesine) git, karakteri yaz.
+  4. Geri dön, bir sonraki işaretlenmemiş karakteri ara.
+  5. Tüm karakterler işaretlendikten sonra A→a, C→b geri çevir.
+
+states:
+  - q_scan       # işaretlenmemiş karakter ara
+  - q_carry_a    # 'a' kopyalanacak, sona git
+  - q_carry_b    # 'b' kopyalanacak, sona git
+  - q_find_end_a # kopyayı yazmak için # geçip sona git ('a')
+  - q_find_end_b # kopyayı yazmak için # geçip sona git ('b')
+  - q_write_a    # 'a' yaz
+  - q_write_b    # 'b' yaz
+  - q_return     # başa dön
+  - q_restore    # A→a, C→b geri çevir
+  - q_accept
+
 input_alphabet: ["a", "b"]
-tape_alphabet: ["a", "b", "B", "#", "A", "Y"]
-start_state: q_init
-accept_states: [q_accept]
+tape_alphabet:  ["a", "b", "A", "C", "#", "B"]
 blank: "B"
+start_state: q_scan
+accept_states: [q_accept]
+
 transitions:
-  - {state: q_init, read: "a", write: "a", move: R, next: q_init}
-  - {state: q_init, read: "b", write: "b", move: R, next: q_init}
-  - {state: q_init, read: "B", write: "#", move: L, next: q_back_to_start}
-  - {state: q_back_to_start, read: "a", write: "a", move: L, next: q_back_to_start}
-  - {state: q_back_to_start, read: "b", write: "b", move: L, next: q_back_to_start}
-  - {state: q_back_to_start, read: "B", write: "B", move: R, next: q_copy}
-  - {state: q_copy, read: "a", write: "A", move: R, next: q_copy_a}
-  - {state: q_copy, read: "b", write: "Y", move: R, next: q_copy_b}
-  - {state: q_copy, read: "#", write: "#", move: L, next: q_restore}
-  - {state: q_copy_a, read: "a", write: "a", move: R, next: q_copy_a}
-  - {state: q_copy_a, read: "b", write: "b", move: R, next: q_copy_a}
-  - {state: q_copy_a, read: "#", write: "#", move: R, next: q_copy_a}
-  - {state: q_copy_a, read: "B", write: "a", move: L, next: q_back_copy}
-  - {state: q_copy_b, read: "a", write: "a", move: R, next: q_copy_b}
-  - {state: q_copy_b, read: "b", write: "b", move: R, next: q_copy_b}
-  - {state: q_copy_b, read: "#", write: "#", move: R, next: q_copy_b}
-  - {state: q_copy_b, read: "B", write: "b", move: L, next: q_back_copy}
-  - {state: q_back_copy, read: "a", write: "a", move: L, next: q_back_copy}
-  - {state: q_back_copy, read: "b", write: "b", move: L, next: q_back_copy}
-  - {state: q_back_copy, read: "#", write: "#", move: L, next: q_back_copy}
-  - {state: q_back_copy, read: "A", write: "A", move: R, next: q_copy}
-  - {state: q_back_copy, read: "Y", write: "Y", move: R, next: q_copy}
-  - {state: q_restore, read: "A", write: "a", move: L, next: q_restore}
-  - {state: q_restore, read: "Y", write: "b", move: L, next: q_restore}
-  - {state: q_restore, read: "B", write: "B", move: R, next: q_accept}
+  # ── q_scan: işaretlenmemiş karakter ara ───────────────────────────
+  - {state: q_scan, read: "a", write: "A", move: R, next: q_carry_a}
+  - {state: q_scan, read: "b", write: "C", move: R, next: q_carry_b}
+  - {state: q_scan, read: "A", write: "A", move: R, next: q_scan}
+  - {state: q_scan, read: "C", write: "C", move: R, next: q_scan}
+  # # işaretine ulaştık → tüm karakterler işaretlendi, sona geldik
+  - {state: q_scan, read: "#", write: "#", move: R, next: q_restore_start}
+  # Hiç # yok ama B'ye geldik → # koy ve kopyalamaya başla
+  - {state: q_scan, read: "B", write: "#", move: R, next: q_restore_start}
+
+  # ── q_carry_a/b: şeridin sonuna git ───────────────────────────────
+  - {state: q_carry_a, read: "a", write: "a", move: R, next: q_carry_a}
+  - {state: q_carry_a, read: "b", write: "b", move: R, next: q_carry_a}
+  - {state: q_carry_a, read: "A", write: "A", move: R, next: q_carry_a}
+  - {state: q_carry_a, read: "C", write: "C", move: R, next: q_carry_a}
+  - {state: q_carry_a, read: "#", write: "#", move: R, next: q_find_end_a}
+  - {state: q_carry_a, read: "B", write: "#", move: R, next: q_write_a}
+
+  - {state: q_carry_b, read: "a", write: "a", move: R, next: q_carry_b}
+  - {state: q_carry_b, read: "b", write: "b", move: R, next: q_carry_b}
+  - {state: q_carry_b, read: "A", write: "A", move: R, next: q_carry_b}
+  - {state: q_carry_b, read: "C", write: "C", move: R, next: q_carry_b}
+  - {state: q_carry_b, read: "#", write: "#", move: R, next: q_find_end_b}
+  - {state: q_carry_b, read: "B", write: "#", move: R, next: q_write_b}
+
+  # ── # geçtikten sonra kopya bölgesinin sonuna git ─────────────────
+  - {state: q_find_end_a, read: "a", write: "a", move: R, next: q_find_end_a}
+  - {state: q_find_end_a, read: "b", write: "b", move: R, next: q_find_end_a}
+  - {state: q_find_end_a, read: "B", write: "a", move: L, next: q_return}
+
+  - {state: q_find_end_b, read: "a", write: "a", move: R, next: q_find_end_b}
+  - {state: q_find_end_b, read: "b", write: "b", move: R, next: q_find_end_b}
+  - {state: q_find_end_b, read: "B", write: "b", move: L, next: q_return}
+
+  # ── İlk kopya karakterini yaz ─────────────────────────────────────
+  - {state: q_write_a, read: "B", write: "a", move: L, next: q_return}
+  - {state: q_write_b, read: "B", write: "b", move: L, next: q_return}
+
+  # ── q_return: şeridin başına geri dön ─────────────────────────────
+  - {state: q_return, read: "a", write: "a", move: L, next: q_return}
+  - {state: q_return, read: "b", write: "b", move: L, next: q_return}
+  - {state: q_return, read: "A", write: "A", move: L, next: q_return}
+  - {state: q_return, read: "C", write: "C", move: L, next: q_return}
+  - {state: q_return, read: "#", write: "#", move: L, next: q_return}
+  - {state: q_return, read: "B", write: "B", move: R, next: q_scan}
+
+  # ── Restore: tüm A→a, C→b çevir ──────────────────────────────────
+  # q_restore_start: # işaretinden sola git, başa gel
+  - {state: q_restore_start, read: "a", write: "a", move: L, next: q_restore_start}
+  - {state: q_restore_start, read: "b", write: "b", move: L, next: q_restore_start}
+  - {state: q_restore_start, read: "A", write: "A", move: L, next: q_restore_start}
+  - {state: q_restore_start, read: "C", write: "C", move: L, next: q_restore_start}
+  - {state: q_restore_start, read: "#", write: "#", move: L, next: q_restore_start}
+  - {state: q_restore_start, read: "B", write: "B", move: R, next: q_restore}
+
+  - {state: q_restore, read: "A", write: "a", move: R, next: q_restore}
+  - {state: q_restore, read: "C", write: "b", move: R, next: q_restore}
+  - {state: q_restore, read: "a", write: "a", move: R, next: q_restore}
+  - {state: q_restore, read: "b", write: "b", move: R, next: q_restore}
+  - {state: q_restore, read: "#", write: "#", move: R, next: q_restore}
+  - {state: q_restore, read: "B", write: "B", move: L, next: q_accept}

@@ -832,3 +832,4 @@ Hazırlayan: Dr. Ali Çetinkaya · Selçuk Üniversitesi · Bilgisayar Mühendis
 
 ---
 
+VİDEO LİNK: https://www.youtube.com/watch?v=Mtmf_G8o_Iw

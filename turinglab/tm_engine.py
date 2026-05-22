@@ -208,7 +208,7 @@ if __name__ == "__main__":
         print(f"Durum: {config.state} | Şerit: {config.tape} | "
               f"Kafa Pozisyonu: {config.head_position}")
 
-        print("\n✅ TEBRİKLER! Motorun hocanın test API'sinden kusursuz geçti!")
 
     except Exception as e:
         print(f"\n❌ TEST BAŞARISIZ: Bir hata oluştu -> {e}")
+        
